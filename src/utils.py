@@ -132,7 +132,8 @@ def getPoints(img, COLLECTION_NUM, IMAGE_NUM):
         # save points
         pts = np.array(points)
         np.save(pts_file_name, pts)
-
+    
+    cv2.destroyWindow(WINDOW_NAME)
     return done, points
 
 
@@ -160,11 +161,9 @@ def prepareObjectPoints():
     return objPoints
 
 
-def prepareImagePoints(points):
-    corner = pointsToCorner(points)
-    
+def prepareImagePoints(corners):
     imgPoints = []
-    imgPoints.append(corner)
+    imgPoints.append(corners)
     return imgPoints
 
 
@@ -177,6 +176,14 @@ def calculateReprojectionError(objPoints, imgPoints, rvecs, tvecs, mtx, dist):
     
     print "total error: ", mean_error / len(objPoints)
 
+
+def draw3DAxis(img, corners, imgPoints):
+    corner = tuple(corners[0].ravel())
+    cv2.line(img, corner, tuple(imgPoints[0].ravel()), (255, 0, 0), 5)
+    cv2.line(img, corner, tuple(imgPoints[1].ravel()), (0, 255, 0), 5)
+    cv2.line(img, corner, tuple(imgPoints[2].ravel()), (0, 0, 255), 5)
+    return img
+    
 
 if __name__ == '__main__':
     img1, img2, img3 = getCollectionPhotos(100)
