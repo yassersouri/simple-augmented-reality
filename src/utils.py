@@ -13,16 +13,21 @@ POINTS_FOLDER = os.path.join(ROOT_FOLDER, POINTS_FOLDER_NAME)
 IMG_FILE_EXTENSION = '.JPG'
 PTS_FILE_EXTENSION = '.pts.npy'
 
-M = 6
-N = 5
+M = 7
+N = 7
+
+assert N <= 7
 
 color1 = (0, 0, 255)
 color2 = (55, 160, 255)
 color3 = (70, 225, 255)
 color4 = (0, 255, 0)
 color5 = (255, 0, 0)
-COLOR = [color1, color2, color3, color4, color5]
-assert len(COLOR) == N
+color6 = (225, 70, 255)
+color7 = (160, 255, 55)
+
+COLOR = [color1, color2, color3, color4, color5, color6, color7, color1, color2, color3]
+assert len(COLOR) >= N
 
 criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 

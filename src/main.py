@@ -5,7 +5,7 @@ import numpy as np
 
 def main():
     COLLECTION_NUM = 4
-    IMAGE_NUM = 1 # 1, 2 or 3
+    IMAGE_NUM = 2 # 1, 2 or 3
     
     imgs = getCollectionPhotos(COLLECTION_NUM, scale_down_factor=5)
     img = imgs[IMAGE_NUM - 1]
