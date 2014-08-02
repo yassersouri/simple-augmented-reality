@@ -13,7 +13,7 @@ POINTS_FOLDER = os.path.join(ROOT_FOLDER, POINTS_FOLDER_NAME)
 IMG_FILE_EXTENSION = '.JPG'
 PTS_FILE_EXTENSION = '.pts.npy'
 
-M = 7
+M = 8
 N = 7
 
 assert N <= 7

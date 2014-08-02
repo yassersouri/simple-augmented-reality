@@ -26,7 +26,7 @@ def main():
             
             axis = np.float32([[3, 0, 0], [0, 3, 0], [0, 0, -3]])
             
-#             rvecs, tvecs, inliers = cv2.solvePnPRansac(objPoints[0], corners, mtx, dist)
+            rvecs, tvecs, inliers = cv2.solvePnPRansac(objPoints[0], corners, mtx, dist)
             
             imgpts, jac = cv2.projectPoints(axis, np.array(rvecs), np.array(tvecs), mtx, dist)
             
