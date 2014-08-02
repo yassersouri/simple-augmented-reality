@@ -1,4 +1,5 @@
-from utils import getCollectionPhotos, getPoints
+from utils import getCollectionPhotos, getPoints, M, N, calculateReprojectionError
+from utils import prepareImagePoints, prepareObjectPoints
 import cv2
 
 def main():
@@ -10,8 +11,19 @@ def main():
     
     done, points = getPoints(img, COLLECTION_NUM, IMAGE_NUM)
     
-    print done
-    print len(points)
+    if done:
+        if len(points) != M * N:
+            print 'Not enough points'
+            print 'We need %d x %d = %d points' % (M, N, M * N)
+            print 'Run again and complete it'
+        else:
+            imgPoints = prepareImagePoints(points)
+            objPoints = prepareObjectPoints()
+            ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objPoints, imgPoints, (img.shape[0], img.shape[1]), None, None)
+            calculateReprojectionError(objPoints, imgPoints, rvecs, tvecs, mtx, dist)
+            
+            
+            
 
 if __name__ == '__main__':
     main()

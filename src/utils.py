@@ -47,12 +47,13 @@ def cornerToPoints(corner):
     return points
 
 
-def refinePoints(gray):
-    global points
-
+def refinePoints(gray, points):
+    if len(points) == 9:
+        return points
     corner = pointsToCorner(points)
     cv2.cornerSubPix(gray, corner, (11, 11), (-1, -1), criteria)
     points = cornerToPoints(corner)
+    return points
 
 
 def getPoints(img, COLLECTION_NUM, IMAGE_NUM):
@@ -83,9 +84,11 @@ def getPoints(img, COLLECTION_NUM, IMAGE_NUM):
 
         if event == cv2.EVENT_LBUTTONDOWN:
             if len(points) == M * N:
+                print('\a')
                 print 'FULL'
                 return
             points.append((x, y))
+            points = refinePoints(gray, points)
             imgD = draw_points(imgO)
             cv2.imshow(WINDOW_NAME, imgD)
 
@@ -94,8 +97,7 @@ def getPoints(img, COLLECTION_NUM, IMAGE_NUM):
 
         done = False
         while(True):
-            if len(points) > 0:
-                refinePoints(gray)
+            points = refinePoints(gray, points)
             imgD = draw_points(imgO)
             cv2.imshow(WINDOW_NAME, imgD)
             cv2.setMouseCallback(WINDOW_NAME, onMouse)
@@ -147,6 +149,33 @@ def getCollectionPhotos(collectionNum, scale_down_factor=1):
         imgs.append(cimg)
 
     return imgs
+
+
+def prepareObjectPoints():
+    objp = np.zeros((M*N, 3), np.float32)
+    objp[:, :2] = np.mgrid[0:M, 0:N].T.reshape(-1, 2)
+    
+    objPoints = []
+    objPoints.append(objp)
+    return objPoints
+
+
+def prepareImagePoints(points):
+    corner = pointsToCorner(points)
+    
+    imgPoints = []
+    imgPoints.append(corner)
+    return imgPoints
+
+
+def calculateReprojectionError(objPoints, imgPoints, rvecs, tvecs, mtx, dist):
+    mean_error = 0
+    for i in xrange(len(objPoints)):
+        imgpoints2, _ = cv2.projectPoints(objPoints[i], rvecs[i], tvecs[i], mtx, dist)
+        error = cv2.norm(imgPoints[i], imgpoints2, cv2.NORM_L2) / len(imgpoints2)
+        mean_error += error
+    
+    print "total error: ", mean_error / len(objPoints)
 
 
 if __name__ == '__main__':
