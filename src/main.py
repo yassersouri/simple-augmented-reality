@@ -20,8 +20,15 @@ def drawAxis(img, corners, rvecs, tvecs, mtx, dist, scale=1):
 
 
 def main():
-    COLLECTION_NUM = 8
-    IMAGE_NUM = 2  # 1, 2 or 3
+    
+    Z_SCALES = np.ones((100, 10)) * -1
+    Z_SCALES[8, :] = -3
+    Z_SCALES[4, 1] = -2
+    Z_SCALES[4, 2] = -0.5
+    Z_SCALES[4, 3] = -1
+    
+    COLLECTION_NUM = 4
+    IMAGE_NUM = 3  # 1, 2 or 3
     
     M = 8  # 8
     N = 7  # 7
@@ -66,7 +73,7 @@ def main():
             vertices[:, 2] = vertices[:, 2] - vertices[:, 2].min()
             vertices = vertices / 2
             
-            vertices[:, 2] = vertices[:, 2] / 3
+            vertices[:, 2] = vertices[:, 2] / Z_SCALES[COLLECTION_NUM, IMAGE_NUM]
 
             shadowPoints = vertices.copy()
             shadowPoints[:, 2] = 0
