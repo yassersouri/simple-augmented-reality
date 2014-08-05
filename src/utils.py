@@ -13,11 +13,6 @@ POINTS_FOLDER = os.path.join(ROOT_FOLDER, POINTS_FOLDER_NAME)
 IMG_FILE_EXTENSION = '.JPG'
 PTS_FILE_EXTENSION = '.pts.npy'
 
-M = 8
-N = 7
-
-assert N <= 7
-
 color1 = (0, 0, 255)
 color2 = (55, 160, 255)
 color3 = (70, 225, 255)
@@ -26,12 +21,74 @@ color5 = (255, 0, 0)
 color6 = (225, 70, 255)
 color7 = (160, 255, 55)
 
-COLOR = [color1, color2, color3, color4, color5, color6, color7, color1, color2, color3]
-assert len(COLOR) >= N
+COLOR = [color1, color2, color3, color4, color5, color6, color7]
 
 criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 
 global points
+
+
+def loadPLY(fileAddress=None):
+    if fileAddress is None:
+        fileAddress = os.path.join(DATA_FOLDER, "parasaurolophus_high.ply")
+
+    vertices = 0
+    faces = 0
+
+    vertex_len = 0
+    face_len = 0
+
+    vertex_ind = 0
+    face_ind = 0
+
+    mode = 'h'  # h: parsing headers, v: vertex list, f: face list
+
+    with open(fileAddress, 'r') as infile:
+        for line in infile:
+            parts = line.split(' ')
+            if mode == 'h':
+                if len(parts) == 3:
+                    if parts[0] == "element":
+                        if parts[1] == "vertex":
+                            vertex_len = int(parts[2])
+                        if parts[1] == "face":
+                            face_len = int(parts[2])
+                    continue
+                if len(parts) == 1:
+                    if parts[0].strip() == "end_header":
+                        mode = 'v'
+                        # initialize vertices with empty arrays
+                        vertices = np.zeros((vertex_len, 3), dtype=np.float32)
+                        faces = [[] for x in xrange(vertex_len)]
+                        continue
+            if mode == 'v':
+                if vertex_ind == vertex_len:
+                    mode = 'f'
+                else:
+                    # parse vertex
+                    x = float(parts[0])
+                    y = float(parts[1])
+                    z = float(parts[2])
+                    vertices[vertex_ind] = [x, y, z]
+                    vertex_ind += 1
+            if mode == 'f':
+                if face_ind == face_len:
+                    print 'What is wrong?'
+                else:
+                    # parse face
+                    _1 = int(parts[1])
+                    _2 = int(parts[2])
+                    _3 = int(parts[3])
+
+                    tu = (_1, _2, _3)
+
+                    faces[_1].append(tu)
+                    faces[_2].append(tu)
+                    faces[_3].append(tu)
+
+                    face_ind += 1
+
+    return vertices, faces
 
 
 def pointsToCorner(points):
@@ -61,13 +118,17 @@ def refinePoints(gray, points):
     return points
 
 
-def getPoints(img, COLLECTION_NUM, IMAGE_NUM):
+def getPoints(img, COLLECTION_NUM, IMAGE_NUM, M, N):
     global points
 
     imgO = img
     gray = cv2.cvtColor(imgO, cv2.COLOR_BGR2GRAY)
 
     PTS_COLLECTION_PATH = os.path.join(POINTS_FOLDER, str(COLLECTION_NUM))
+    
+    # create directory if not exists
+    if not os.path.exists(PTS_COLLECTION_PATH):
+        os.makedirs(PTS_COLLECTION_PATH)
     pts_file_name = os.path.join(PTS_COLLECTION_PATH, str(IMAGE_NUM) + PTS_FILE_EXTENSION)
     files = glob.glob(pts_file_name)
 
@@ -80,7 +141,7 @@ def getPoints(img, COLLECTION_NUM, IMAGE_NUM):
         imgD = np.copy(imgO)
         i = 0
         for point in points:
-            cv2.circle(imgD, tuple(point), radius, COLOR[i/M], thickness)
+            cv2.circle(imgD, tuple(point), radius, COLOR[(i/M) % M], thickness)
             i += 1
         return imgD
 
@@ -137,7 +198,7 @@ def getPoints(img, COLLECTION_NUM, IMAGE_NUM):
         # save points
         pts = np.array(points)
         np.save(pts_file_name, pts)
-    
+
     cv2.destroyWindow(WINDOW_NAME)
     return done, points
 
@@ -157,9 +218,11 @@ def getCollectionPhotos(collectionNum, scale_down_factor=1):
     return imgs
 
 
-def prepareObjectPoints():
+def prepareObjectPoints(M, N, scale=1):
     objp = np.zeros((M*N, 3), np.float32)
     objp[:, :2] = np.mgrid[0:M, 0:N].T.reshape(-1, 2)
+    
+    objp = objp * scale
     
     objPoints = []
     objPoints.append(objp)
@@ -178,17 +241,18 @@ def calculateReprojectionError(objPoints, imgPoints, rvecs, tvecs, mtx, dist):
         imgpoints2, _ = cv2.projectPoints(objPoints[i], rvecs[i], tvecs[i], mtx, dist)
         error = cv2.norm(imgPoints[i], imgpoints2, cv2.NORM_L2) / len(imgpoints2)
         mean_error += error
-    
+
     print "total error: ", mean_error / len(objPoints)
 
 
-def draw3DAxis(img, corners, imgPoints):
-    corner = tuple(corners[0].ravel())
+def draw3DAxisLines(img, origin, imgPoints):
+    corner = tuple(origin.ravel())
     cv2.line(img, corner, tuple(imgPoints[0].ravel()), (255, 0, 0), 5)
     cv2.line(img, corner, tuple(imgPoints[1].ravel()), (0, 255, 0), 5)
     cv2.line(img, corner, tuple(imgPoints[2].ravel()), (0, 0, 255), 5)
     return img
-    
+
 
 if __name__ == '__main__':
-    img1, img2, img3 = getCollectionPhotos(100)
+    vertices, faces = loadPLY()
+    print "finished"
