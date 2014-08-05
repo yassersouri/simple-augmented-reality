@@ -22,12 +22,15 @@ def drawAxis(img, corners, rvecs, tvecs, mtx, dist, scale=1):
 def main():
     
     Z_SCALES = np.ones((100, 10)) * -1
-    Z_SCALES[8, :] = -3
+    Z_SCALES[8, 1] = -1
+    Z_SCALES[8, 2] = -3
+    Z_SCALES[8, 3] = -3
     Z_SCALES[4, 1] = -2
     Z_SCALES[4, 2] = -0.5
     Z_SCALES[4, 3] = -1
+    Z_SCALES[5, 3] = -2.5
     
-    COLLECTION_NUM = 4
+    COLLECTION_NUM = 8
     IMAGE_NUM = 3  # 1, 2 or 3
     
     M = 8  # 8
