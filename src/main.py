@@ -1,5 +1,5 @@
-from utils import getCollectionPhotos, getPoints, calculateReprojectionError, loadPLY
-from utils import prepareImagePoints, prepareObjectPoints, pointsToCorner, draw3DAxisLines
+from utils import getCollectionPhotos, getPoints, calculateReprojectionError, loadPLY, refine_vertices
+from utils import prepareImagePoints, prepareObjectPoints, pointsToCorner, draw3DAxisLines, calculate_shadow
 import cv2
 import numpy as np
 
@@ -19,8 +19,7 @@ def drawAxis(img, corners, rvecs, tvecs, mtx, dist, scale=1):
     img = draw3DAxisLines(img, corners[0], imgpts)
 
 
-def main():
-    
+def get_z_scales():
     Z_SCALES = np.ones((100, 10)) * -1
     Z_SCALES[8, 1] = -1
     Z_SCALES[8, 2] = -3
@@ -30,17 +29,27 @@ def main():
     Z_SCALES[4, 3] = -1
     Z_SCALES[5, 3] = -2.5
     
+    return Z_SCALES
+
+
+def main():
+    
+    Z_SCALES = get_z_scales()
+    
+    """ What Image to Choose """
     COLLECTION_NUM = 8
     IMAGE_NUM = 3  # 1, 2 or 3
     
+    """ Calibration Parameters """
     M = 8  # 8
     N = 7  # 7
-    
     SCALE = 20
+    
+    """ Shadow Line """
+    l = [-2, -2, 1]
     
     imgs = getCollectionPhotos(COLLECTION_NUM, scale_down_factor=5)
     img = imgs[IMAGE_NUM - 1]
-    
     done, points = getPoints(img, COLLECTION_NUM, IMAGE_NUM, M, N)
     
     if done:
@@ -64,35 +73,22 @@ def main():
             cv2.destroyAllWindows()
             
             vertices, faces = loadPLY()
-            
-            means = vertices.mean(axis = 0)
-            vertices = vertices - means
-            vertices[:, [0, 1, 2]] = vertices[:, [2, 1, 0]]
-            vertices = vertices + means
-            
-            
-            vertices[:, 0] = vertices[:, 0] - vertices[:, 0].min()
-            vertices[:, 1] = vertices[:, 1] - vertices[:, 1].min()
-            vertices[:, 2] = vertices[:, 2] - vertices[:, 2].min()
-            vertices = vertices / 2
-            
-            vertices[:, 2] = vertices[:, 2] / Z_SCALES[COLLECTION_NUM, IMAGE_NUM]
+            vertices = refine_vertices(vertices, Z_SCALES[COLLECTION_NUM, IMAGE_NUM])
 
-            shadowPoints = vertices.copy()
-            shadowPoints[:, 2] = 0
+            shadowPoints = calculate_shadow(vertices, l)
             
             objetImagePoints, _jac = cv2.projectPoints(vertices, np.array(rvecs), np.array(tvecs), mtx, dist)
             shadowImagePoints, _jac = cv2.projectPoints(shadowPoints, np.array(rvecs), np.array(tvecs), mtx, dist)
 
-            imgShape = np.zeros_like(img, np.uint8)
+            imgShape = img.copy()
             
             for p in shadowImagePoints:
-                cv2.circle(imgAxis, (p[0][0], p[0][1]), 1, (0, 0, 0), -1)
+                cv2.circle(imgShape, (p[0][0], p[0][1]), 1, (0, 0, 0), -1)
 
             for p in objetImagePoints:
-                cv2.circle(imgAxis, (p[0][0], p[0][1]), 1, (255, 255, 255), -1)
+                cv2.circle(imgShape, (p[0][0], p[0][1]), 1, (255, 255, 255), -1)
 
-            cv2.imshow("with axis and object", imgAxis)
+            cv2.imshow("image with object and shadow", imgShape)
             cv2.waitKey(0)
             cv2.destroyAllWindows()
 

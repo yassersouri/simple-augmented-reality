@@ -2,6 +2,7 @@ import cv2
 import os
 import glob
 import numpy as np
+from geomhelper import Line, Plane
 
 CURRENT_FILE = os.path.realpath(__file__)
 SRC_FOLDER = os.path.dirname(CURRENT_FILE)
@@ -90,6 +91,20 @@ def loadPLY(fileAddress=None):
 
     return vertices, faces
 
+def refine_vertices(vertices, z_scale):
+    means = vertices.mean(axis = 0)
+    vertices = vertices - means
+    vertices[:, [0, 1, 2]] = vertices[:, [2, 1, 0]]
+    vertices = vertices + means
+    
+    vertices[:, 0] = vertices[:, 0] - vertices[:, 0].min()
+    vertices[:, 1] = vertices[:, 1] - vertices[:, 1].min()
+    vertices[:, 2] = vertices[:, 2] - vertices[:, 2].min()
+    vertices = vertices / 2
+    
+    vertices[:, 2] = vertices[:, 2] / z_scale
+    
+    return vertices
 
 def pointsToCorner(points):
     corner = np.zeros((len(points), 1, 2), dtype=np.float32)
@@ -251,6 +266,18 @@ def draw3DAxisLines(img, origin, imgPoints):
     cv2.line(img, corner, tuple(imgPoints[1].ravel()), (0, 255, 0), 5)
     cv2.line(img, corner, tuple(imgPoints[2].ravel()), (0, 0, 255), 5)
     return img
+
+
+def calculate_shadow(vertices, l):
+    ground_plane = Plane([0, 0, 1], 0)
+    shadow_points = np.zeros_like(vertices, np.float32)
+    
+    for v_num in range(vertices.shape[0]):
+        l0 = vertices[v_num].tolist()
+        line = Line(l0, l)
+        shadow_points[v_num] = ground_plane.interset_line(line)
+    
+    return shadow_points
 
 
 if __name__ == '__main__':
