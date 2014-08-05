@@ -45,9 +45,11 @@ def main():
     N = 7  # 7
     SCALE = 20
     
-    """ Shadow Line """
+    """ Shadow Parameter """
     l = [-2, -2, 1]
+    transparency = 0.7
     
+    """ Actual calculations begin """
     imgs = getCollectionPhotos(COLLECTION_NUM, scale_down_factor=5)
     img = imgs[IMAGE_NUM - 1]
     done, points = getPoints(img, COLLECTION_NUM, IMAGE_NUM, M, N)
@@ -81,9 +83,11 @@ def main():
             shadowImagePoints, _jac = cv2.projectPoints(shadowPoints, np.array(rvecs), np.array(tvecs), mtx, dist)
 
             imgShape = img.copy()
+            imgShadow = img.copy()
             
             for p in shadowImagePoints:
-                cv2.circle(imgShape, (p[0][0], p[0][1]), 1, (0, 0, 0), -1)
+                cv2.circle(imgShadow, (p[0][0], p[0][1]), 1, (0, 0, 0), -1)
+            imgShape = cv2.addWeighted(imgShape, (1 - transparency), imgShadow, transparency, 0)
 
             for p in objetImagePoints:
                 cv2.circle(imgShape, (p[0][0], p[0][1]), 1, (255, 255, 255), -1)
