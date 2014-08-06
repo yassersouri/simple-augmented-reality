@@ -168,7 +168,7 @@ def getPoints(img, COLLECTION_NUM, IMAGE_NUM, M, N):
         imgD = np.copy(imgO)
         i = 0
         for point in points:
-            cv2.circle(imgD, tuple(point), radius, COLOR[(i/M) % M], thickness)
+            cv2.circle(imgD, tuple(point), radius, COLOR[(i/M) % len(COLOR)], thickness)
             i += 1
         return imgD
 
