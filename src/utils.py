@@ -306,7 +306,7 @@ def calculate_colors(vertices, faces, l, do_colors=True, smoothing=False):
         c = vertices[face[2], :]
         n_mean = geomhelper.Plane.plane_normal_from_three_points(a, b, c)
         
-        objectColors[v_ind] = 255 * (geomhelper.dot(n_mean, l) + 1)
+        objectColors[v_ind] = 255 * (-1 * geomhelper.dot(n_mean, l) + 1)
     
     # now lets do smoothing
     if smoothing:

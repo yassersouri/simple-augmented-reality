@@ -70,13 +70,15 @@ def main():
             objPoints = prepareObjectPoints(M, N, SCALE)
             
             _ret, mtx, dist, rvecs, tvecs = calibrateCamera(objPoints, imgPoints, img.shape)
-            calculateReprojectionError(objPoints, imgPoints, rvecs, tvecs, mtx, dist)
+#             calculateReprojectionError(objPoints, imgPoints, rvecs, tvecs, mtx, dist)
             
             imgAxis = img.copy()
             
             drawAxis(imgAxis, corners, rvecs, tvecs, mtx, dist, SCALE)
             cv2.imshow("original image with 3D axis", imgAxis)
-            cv2.waitKey(0)
+            key = cv2.waitKey(0)
+            if key == 27:
+                exit();
             cv2.destroyAllWindows()
             
             vertices, faces = loadPLY()
