@@ -2,15 +2,17 @@ import cv2
 import os
 import glob
 import numpy as np
-from geomhelper import Line, Plane
+import geomhelper
 
 CURRENT_FILE = os.path.realpath(__file__)
 SRC_FOLDER = os.path.dirname(CURRENT_FILE)
 ROOT_FOLDER = os.path.dirname(SRC_FOLDER)
 DATA_FOLDER_NAME = 'data'
 POINTS_FOLDER_NAME = 'points'
+RESULTS_FOLDER_NAME = 'results'
 DATA_FOLDER = os.path.join(ROOT_FOLDER, DATA_FOLDER_NAME)
 POINTS_FOLDER = os.path.join(ROOT_FOLDER, POINTS_FOLDER_NAME)
+RESULTS_FOLDER = os.path.join(ROOT_FOLDER, RESULTS_FOLDER_NAME)
 IMG_FILE_EXTENSION = '.JPG'
 PTS_FILE_EXTENSION = '.pts.npy'
 
@@ -27,6 +29,16 @@ COLOR = [color1, color2, color3, color4, color5, color6, color7]
 criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 
 global points
+
+
+def get_save_address(COLLECTION_NUM, IMAGE_NUM, DO_COLOR, SMOOTHING):
+    collection_results_folder = os.path.join(RESULTS_FOLDER, str(COLLECTION_NUM));
+    if not os.path.exists(collection_results_folder):
+        os.makedirs(collection_results_folder)
+    
+    name = "%d-color:%s-smoothing:%s%s" % (IMAGE_NUM, str(DO_COLOR), str(SMOOTHING), IMG_FILE_EXTENSION)
+    
+    return os.path.join(collection_results_folder, name)
 
 
 def loadPLY(fileAddress=None):
@@ -269,15 +281,43 @@ def draw3DAxisLines(img, origin, imgPoints):
 
 
 def calculate_shadow(vertices, l):
-    ground_plane = Plane([0, 0, 1], 0)
+    ground_plane = geomhelper.Plane([0, 0, 1], 0)
     shadow_points = np.zeros_like(vertices, np.float32)
     
     for v_num in range(vertices.shape[0]):
         l0 = vertices[v_num].tolist()
-        line = Line(l0, l)
+        line = geomhelper.Line(l0, l)
         shadow_points[v_num] = ground_plane.interset_line(line)
     
     return shadow_points
+
+
+def calculate_colors(vertices, faces, l, do_colors=True, smoothing=False):
+    objectColors = np.ones(vertices.shape[0], dtype=np.uint8) * 255
+    
+    if not do_colors:
+        return objectColors
+    
+    for v_ind in range(vertices.shape[0]):
+        current_faces = faces[v_ind]
+        face = current_faces[0]
+        a = vertices[face[0], :]
+        b = vertices[face[1], :]
+        c = vertices[face[2], :]
+        n_mean = geomhelper.Plane.plane_normal_from_three_points(a, b, c)
+        
+        objectColors[v_ind] = 255 * (geomhelper.dot(n_mean, l) + 1)
+    
+    # now lets do smoothing
+    if smoothing:
+        for v_ind in range(vertices.shape[0]):
+            current_faces = faces[v_ind]
+            color_sum = 0
+            for face in current_faces:
+                color_sum += objectColors[list(face)].mean()
+            objectColors[v_ind] = int(float(color_sum)/len(current_faces))
+
+    return objectColors
 
 
 if __name__ == '__main__':

@@ -1,7 +1,8 @@
 from utils import getCollectionPhotos, getPoints, calculateReprojectionError, loadPLY, refine_vertices
-from utils import prepareImagePoints, prepareObjectPoints, pointsToCorner, draw3DAxisLines, calculate_shadow
+from utils import prepareImagePoints, prepareObjectPoints, pointsToCorner, draw3DAxisLines, calculate_shadow, calculate_colors, get_save_address
 import cv2
 import numpy as np
+from geomhelper import normalize
 
 
 def calibrateCamera(objPoints, imgPoints, imgShape):
@@ -37,7 +38,7 @@ def main():
     Z_SCALES = get_z_scales()
     
     """ What Image to Choose """
-    COLLECTION_NUM = 8
+    COLLECTION_NUM = 4
     IMAGE_NUM = 3  # 1, 2 or 3
     
     """ Calibration Parameters """
@@ -46,13 +47,17 @@ def main():
     SCALE = 20
     
     """ Shadow Parameter """
-    l = [-2, -2, 1]
+    l = [0, 0, 1]
+    l = normalize(l)
     transparency = 0.7
+    DO_COLOR = True
+    SMOOTHING = True
     
     """ Actual calculations begin """
     imgs = getCollectionPhotos(COLLECTION_NUM, scale_down_factor=5)
     img = imgs[IMAGE_NUM - 1]
     done, points = getPoints(img, COLLECTION_NUM, IMAGE_NUM, M, N)
+    SAVE_ADDRESS = get_save_address(COLLECTION_NUM, IMAGE_NUM, DO_COLOR, SMOOTHING)
     
     if done:
         if len(points) != M * N:
@@ -78,8 +83,9 @@ def main():
             vertices = refine_vertices(vertices, Z_SCALES[COLLECTION_NUM, IMAGE_NUM])
 
             shadowPoints = calculate_shadow(vertices, l)
+            objectColors = calculate_colors(vertices, faces, l, DO_COLOR, SMOOTHING)
             
-            objetImagePoints, _jac = cv2.projectPoints(vertices, np.array(rvecs), np.array(tvecs), mtx, dist)
+            objectImagePoints, _jac = cv2.projectPoints(vertices, np.array(rvecs), np.array(tvecs), mtx, dist)
             shadowImagePoints, _jac = cv2.projectPoints(shadowPoints, np.array(rvecs), np.array(tvecs), mtx, dist)
 
             imgShape = img.copy()
@@ -89,10 +95,13 @@ def main():
                 cv2.circle(imgShadow, (p[0][0], p[0][1]), 1, (0, 0, 0), -1)
             imgShape = cv2.addWeighted(imgShape, (1 - transparency), imgShadow, transparency, 0)
 
-            for p in objetImagePoints:
-                cv2.circle(imgShape, (p[0][0], p[0][1]), 1, (255, 255, 255), -1)
+            for p_ind in range(objectImagePoints.shape[0]):
+                p = objectImagePoints[p_ind]
+                p_color = int(objectColors[p_ind])
+                cv2.circle(imgShape, (p[0][0], p[0][1]), 1, (p_color, p_color, p_color), -1)
 
             cv2.imshow("image with object and shadow", imgShape)
+            cv2.imwrite(SAVE_ADDRESS, imgShape)
             cv2.waitKey(0)
             cv2.destroyAllWindows()
 
