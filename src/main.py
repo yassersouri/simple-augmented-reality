@@ -22,14 +22,13 @@ def drawAxis(img, corners, rvecs, tvecs, mtx, dist, scale=1):
 
 def get_z_scales():
     Z_SCALES = np.ones((100, 10)) * -1
-    Z_SCALES[8, 1] = -1
-    Z_SCALES[8, 2] = -3
-    Z_SCALES[8, 3] = -3
+    Z_SCALES[3, 3] = 1
+    Z_SCALES[8, 2] = 3
+    Z_SCALES[8, 3] = 3
     Z_SCALES[4, 1] = -2
     Z_SCALES[4, 2] = -0.5
-    Z_SCALES[4, 3] = -1
-    Z_SCALES[5, 3] = -2.5
-    
+    Z_SCALES[4, 3] = 1
+    Z_SCALES[5, 3] = 2.5
     return Z_SCALES
 
 
@@ -39,7 +38,7 @@ def main():
     
     """ What Image to Choose """
     COLLECTION_NUM = 4
-    IMAGE_NUM = 3  # 1, 2 or 3
+    IMAGE_NUM = 2  # 1, 2 or 3
     
     """ Calibration Parameters """
     M = 8  # 8
@@ -47,9 +46,10 @@ def main():
     SCALE = 20
     
     """ Shadow Parameter """
-    l = [0, 0, 1]
+    l = [-1, 0.6, 1]
     l = normalize(l)
     transparency = 0.7
+    DO_SHADOW = True
     DO_COLOR = True
     SMOOTHING = True
     
@@ -68,9 +68,7 @@ def main():
             corners = pointsToCorner(points)
             imgPoints = prepareImagePoints(corners)
             objPoints = prepareObjectPoints(M, N, SCALE)
-            
             _ret, mtx, dist, rvecs, tvecs = calibrateCamera(objPoints, imgPoints, img.shape)
-#             calculateReprojectionError(objPoints, imgPoints, rvecs, tvecs, mtx, dist)
             
             imgAxis = img.copy()
             
@@ -84,7 +82,7 @@ def main():
             vertices, faces = loadPLY()
             vertices = refine_vertices(vertices, Z_SCALES[COLLECTION_NUM, IMAGE_NUM])
 
-            shadowPoints = calculate_shadow(vertices, l)
+            shadowPoints = calculate_shadow(vertices, l, DO_SHADOW)
             objectColors = calculate_colors(vertices, faces, l, DO_COLOR, SMOOTHING)
             
             objectImagePoints, _jac = cv2.projectPoints(vertices, np.array(rvecs), np.array(tvecs), mtx, dist)
@@ -93,9 +91,10 @@ def main():
             imgShape = img.copy()
             imgShadow = img.copy()
             
-            for p in shadowImagePoints:
-                cv2.circle(imgShadow, (p[0][0], p[0][1]), 1, (0, 0, 0), -1)
-            imgShape = cv2.addWeighted(imgShape, (1 - transparency), imgShadow, transparency, 0)
+            if DO_SHADOW:
+                for p in shadowImagePoints:
+                    cv2.circle(imgShadow, (p[0][0], p[0][1]), 1, (0, 0, 0), -1)
+                imgShape = cv2.addWeighted(imgShape, (1 - transparency), imgShadow, transparency, 0)
 
             for p_ind in range(objectImagePoints.shape[0]):
                 p = objectImagePoints[p_ind]

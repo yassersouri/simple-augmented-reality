@@ -280,9 +280,12 @@ def draw3DAxisLines(img, origin, imgPoints):
     return img
 
 
-def calculate_shadow(vertices, l):
+def calculate_shadow(vertices, l, do_shadow=True):
     ground_plane = geomhelper.Plane([0, 0, 1], 0)
     shadow_points = np.zeros_like(vertices, np.float32)
+    
+    if not do_shadow:
+        return shadow_points
     
     for v_num in range(vertices.shape[0]):
         l0 = vertices[v_num].tolist()
