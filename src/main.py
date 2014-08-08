@@ -3,6 +3,7 @@ from utils import prepareImagePoints, prepareObjectPoints, pointsToCorner, draw3
 import cv2
 import numpy as np
 from geomhelper import normalize
+import math
 
 
 def calibrateCamera(objPoints, imgPoints, imgShape):
@@ -38,7 +39,7 @@ def main():
     
     """ What Image to Choose """
     COLLECTION_NUM = 4
-    IMAGE_NUM = 2  # 1, 2 or 3
+    IMAGE_NUM = 3  # 1, 2 or 3
     
     """ Calibration Parameters """
     M = 8  # 8
@@ -46,7 +47,7 @@ def main():
     SCALE = 20
     
     """ Shadow Parameter """
-    l = [-1, 0.6, 1]
+    l = [-1 * math.cos(math.radians(60)), 0, math.sin(math.radians(60))]
     l = normalize(l)
     transparency = 0.7
     DO_SHADOW = True
@@ -81,6 +82,8 @@ def main():
             
             vertices, faces = loadPLY()
             vertices = refine_vertices(vertices, Z_SCALES[COLLECTION_NUM, IMAGE_NUM])
+            
+            vertices[:, 0] = vertices[:, 0] + 180
 
             shadowPoints = calculate_shadow(vertices, l, DO_SHADOW)
             objectColors = calculate_colors(vertices, faces, l, DO_COLOR, SMOOTHING)
