@@ -19,7 +19,7 @@ Here we need an object in PLY format. The format the meshlab can view!
 
 ### Output
 
-The dinasour can now appear anywhen on the board.
+The dinasour can now appear anywhere on the board.
 
 ![Output 1](https://github.com/yassersouri/simple-augmented-reality/blob/master/images/out1.png)
 
